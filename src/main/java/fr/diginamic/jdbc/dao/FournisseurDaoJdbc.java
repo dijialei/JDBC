@@ -2,15 +2,12 @@ package fr.diginamic.jdbc.dao;
 
 import fr.diginamic.jdbc.entites.Fournisseur;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
-public class FournisseurDaoJdbc implements IFournisseurDao{
+public class FournisseurDaoJdbc implements IFournisseurDao {
 
     private static final String USERNAME;
     private static final String PASSWORD;
@@ -22,19 +19,22 @@ public class FournisseurDaoJdbc implements IFournisseurDao{
         PASSWORD = bundle.getString("password");
         URL = bundle.getString("url");
     }
+
     @Override
     public List<Fournisseur> extraire() {
-        try {
-            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            Statement stm = connection.createStatement();
-            ResultSet select = stm.executeQuery("select * from fournisseur");
-            List<Fournisseur> fous =  new ArrayList<>();
-            while (select.next()){
-                Fournisseur fou = new Fournisseur(select.getInt(1), select.getString(2) );
+        String sql = "select * from fournisseur";
+        try(Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+
+            PreparedStatement pstm = connection.prepareStatement(sql);) {
+
+            ResultSet select = pstm.executeQuery();
+            List<Fournisseur> fous = new ArrayList<>();
+            while (select.next()) {
+                Fournisseur fou = new Fournisseur(select.getInt(1), select.getString(2));
                 fous.add(fou);
             }
-           return fous;
-        }catch (Exception e){
+            return fous;
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return null;
@@ -42,28 +42,33 @@ public class FournisseurDaoJdbc implements IFournisseurDao{
 
     @Override
     public void insert(Fournisseur fournisseur) {
-        try {
-            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            Statement stm = connection.createStatement();
-            String sql = String.format("insert into fournisseur values (%d,'%s')",fournisseur.getId(),fournisseur.getNom());
-            System.out.println(sql);
-            int n = stm.executeUpdate(sql);
+        String sql = "insert into fournisseur values (?,?)";
+        try (Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+
+             PreparedStatement pstm = connection.prepareStatement(sql);){
+
+            pstm.setInt(1, fournisseur.getId());
+            pstm.setString(2, fournisseur.getNom());
+            int n = pstm.executeUpdate();
             System.out.println("done!");
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
     @Override
     public int update(String ancienNom, String nouveauNom) {
-        try {
-            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            Statement stm = connection.createStatement();
-            String sql = String.format("update fournisseur set nom='%s' where nom='%s'",nouveauNom,ancienNom);
-            int n = stm.executeUpdate(sql);
+        String sql = "update fournisseur set nom=? where nom=?";
+        try (Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+
+             PreparedStatement pstm = connection.prepareStatement(sql);){
+
+            pstm.setString(1, nouveauNom);
+            pstm.setString(2, ancienNom);
+            int n = pstm.executeUpdate();
 
             return n;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return 0;
@@ -72,13 +77,15 @@ public class FournisseurDaoJdbc implements IFournisseurDao{
 
     @Override
     public boolean delete(Fournisseur fournisseur) {
-        try {
-            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            Statement stm = connection.createStatement();
-            String sql =String.format("delete from fournisseur where nom='%s'",fournisseur.getNom());
-            int n = stm.executeUpdate(sql);
+        String sql = "delete from fournisseur where nom=?";
+        try (Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+
+             PreparedStatement pstm = connection.prepareStatement(sql);) {
+
+            pstm.setString(1, fournisseur.getNom());
+            int n = pstm.executeUpdate();
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         return false;
